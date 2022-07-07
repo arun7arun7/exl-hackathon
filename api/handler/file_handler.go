@@ -4,6 +4,8 @@ import (
 	"context"
 	"exl-server/constants"
 	"exl-server/service"
+	"fmt"
+	"io"
 	"log"
 	"net/http"
 
@@ -51,6 +53,40 @@ func fileUpload(parentCtx context.Context,  fs service.FileService) http.Handler
 	};
 }
 
+func fileDownload(parentCtx context.Context,  fs service.FileService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancelFunc := context.WithCancel(parentCtx)
+		defer cancelFunc()
+		vars := mux.Vars(r)
+		objectId := vars["object-id"]
+		body, fileMetadata, err := fs.DownloadSync(ctx, objectId)
+		if err != nil {
+			if err ==  service.ErrObjectIdNotFound {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(err.Error()))
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		log.Printf("fileName: %s, fileExtension: %s", fileMetadata.Name, fileMetadata.FileExtension)
+		contentDisposition := fmt.Sprintf("attachment; filename=%s", fileMetadata.Name)
+		contentType, present := constants.FileExtensionToContentType[fileMetadata.FileExtension]
+		if !present {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Content Type mismatch"))
+			return
+		}
+		log.Printf("Content-Disposition: %s, Content-Type: %s", contentDisposition, contentType)
+		w.Header().Set("Content-Disposition", contentDisposition)
+		w.Header().Set("Content-Type", contentType)
+		io.Copy(w, body)
+	}
+}
+
 func MakeFileHandler(ctx context.Context, router *mux.Router, fs service.FileService) {
 	router.HandleFunc("/v1/upload", fileUpload(ctx, fs)).Methods("POST").Queries("tenant-id", "{tenant-id:.*}", "cloud-type", "{cloud-type:.*}")
+	router.HandleFunc("/v1/download", fileDownload(ctx, fs)).Methods("GET").Queries("object-id", "{object-id:.*}")
+
 }
