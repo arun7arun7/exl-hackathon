@@ -65,7 +65,7 @@ func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, tenantId string
 			log.Println("Error Uploading data")
 			return "", err
 		}
-		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, tenantId)
+		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, tenantId, string(cloudType))
 		if err != nil {
 			log.Printf("Error creating file entry %s", err)
 		}

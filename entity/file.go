@@ -7,7 +7,7 @@ type File struct {
 	fileExtension string
 }
 
-func NewFile(objectId, tenantId, cloudType, fileExtension string) *File {
+func NewFile(objectId, fileExtension, tenantId, cloudType string) *File {
 	return &File{
 		objectId: objectId,
 		tenantId: tenantId,

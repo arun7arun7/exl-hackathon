@@ -1,0 +1,50 @@
+version: '3'
+services:
+  app:
+    container_name: full_app
+    build: .
+    ports: 
+      - 8080:8080 
+    restart: on-failure
+    volumes:
+      - api:/usr/src/app/
+    depends_on:
+      - database          
+    networks:
+      - fullstack
+
+  flyway:
+    image: flyway/flyway
+    command: -url=jdbc:mysql://database -schemas=myschema -user=root -password=P@ssw0rd -connectRetries=60 migrate
+    volumes:
+      - migration:/flyway/sql
+    depends_on:
+      - database
+
+  database:
+    image: mysql
+    container_name: database
+    command: --init-file /init.sql
+    ports: 
+      - 3306:3306
+    # environment: 
+    #   - MYSQL_ROOT_HOST=database 
+    #   - MYSQL_USER=root
+    #   - MYSQL_PASSWORD=root
+    #   - MYSQL_DATABASE=exl
+    #   - MYSQL_ROOT_PASSWORD=root
+    volumes:
+      - ./init.sql:/init.sql
+      - database_mysql:/var/lib/mysql
+    networks:
+      - fullstack
+
+volumes:
+  api:
+  migration:
+  database_mysql:                  
+
+# Networks to be created to facilitate communication between containers
+networks:
+  fullstack:
+    driver: bridge

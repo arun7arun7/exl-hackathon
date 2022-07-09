@@ -8,8 +8,11 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"database/sql"
 
 	"github.com/gorilla/mux"
+	_ "github.com/go-sql-driver/mysql"
+
 )
 
 func main() {
@@ -18,8 +21,16 @@ func main() {
 	router := mux.NewRouter()
 	ctx := context.Background()
 
-	fileRepository := &repository.FileRepositoryImpl{}
-	tenantRepository := &repository.TenantRepositoryImpl{}
+	db, err := sql.Open("mysql", "docker:docker@tcp(database:3306)/exl")
+    if err != nil {
+        log.Fatalf("error connecting database: %s", err)
+    }
+    defer db.Close()
+
+
+
+	fileRepository := repository.NewFileRepositoryImpl(db)
+	tenantRepository := repository.NewTenantRepositoryImpl(db)
 	tenantService := service.NewTenantServiceImpl(tenantRepository)
 	fileService := service.NewFileServiceImpl(fileRepository, tenantService)
 
@@ -28,7 +39,7 @@ func main() {
 	srv := &http.Server{
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		Addr:         ":8090",
+		Addr:         ":8080",
 		Handler:      router,
 	}
 
