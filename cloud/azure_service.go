@@ -34,6 +34,7 @@ func NewAzureService(storageAccount, containerName, tenantId, clientID, clientSe
 }
 
 func (azureService *AzureService) Authenticate() (azcore.TokenCredential, error) {
+	log.Printf("Debug tenant ID : %s", azureService.tenantId)
 	cred, err := azidentity.NewClientSecretCredential(azureService.tenantId, azureService.clientID, azureService.clientSecret, nil)
 	if err != nil {
 		log.Printf("Error Authenticating %s \n", err)

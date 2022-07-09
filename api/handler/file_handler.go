@@ -26,17 +26,22 @@ func fileUpload(parentCtx context.Context,  fs service.FileService) http.Handler
 		log.Printf("contentType: %s, contentLength: %s", contentType, contentLength)
 		fileExtension, present := constants.ContentTypeToFileExtension[contentType]
 		if !present {
+			log.Printf("content-type unsupported\n")
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("Content-Type unsupported"))
 			return
 		}
 		
+		log.Printf("get cloud-type\n")
 		cloud := constants.GetCloudType(cloudType)
 		if cloud == constants.CloudType("") {
+			log.Printf("cloud-type unsupported\n")
 			w.WriteHeader(http.StatusBadRequest)
 			w.Write([]byte("cloud-type unsupported"))	
 			return	
 		}
+		log.Printf("Cloud : %s", cloud)
+
 		objectId, err := fs.UploadSync(ctx, tenantId, cloud, r.Body, fileExtension)
 		if err != nil {
 			if err ==  service.ErrTenantIdNotFound {
@@ -70,6 +75,8 @@ func fileDownload(parentCtx context.Context,  fs service.FileService) http.Handl
 			w.Write([]byte(err.Error()))
 			return
 		}
+		defer body.Close()
+
 		log.Printf("fileName: %s, fileExtension: %s", fileMetadata.Name, fileMetadata.FileExtension)
 		contentDisposition := fmt.Sprintf("attachment; filename=%s", fileMetadata.Name)
 		contentType, present := constants.FileExtensionToContentType[fileMetadata.FileExtension]

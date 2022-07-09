@@ -12,6 +12,8 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/go-sql-driver/mysql"
+	// "github.com/jinzhu/gorm"
+	// "gorm.io/driver/mysql"
 
 )
 
@@ -21,13 +23,21 @@ func main() {
 	router := mux.NewRouter()
 	ctx := context.Background()
 
-	db, err := sql.Open("mysql", "docker:docker@tcp(database:3306)/exl")
+	db, err := sql.Open("mysql", "sample_user:password@tcp(database:3306)/exl")
     if err != nil {
         log.Fatalf("error connecting database: %s", err)
     }
     defer db.Close()
 
-
+	// USER := "sample_user"
+	// PASS := "password"
+	// PROTOCOL := "tcp(127.0.0.1:3306)"
+	// DBNAME := "exl"
+	// CONNECT := USER + ":" + PASS + "@" + PROTOCOL + "/" + DBNAME + "?parseTime=true"
+	// db, err := gorm.Open("mysql", CONNECT)
+	// if err != nil {
+	// 	log.Fatalf("error connecting database: %s\n", err)
+	// }
 
 	fileRepository := repository.NewFileRepositoryImpl(db)
 	tenantRepository := repository.NewTenantRepositoryImpl(db)

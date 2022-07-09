@@ -2,49 +2,52 @@ version: '3'
 services:
   app:
     container_name: full_app
-    build: .
+    build:
+      context: .
+      dockerfile: DockerFile
+    command: /bin/sh -c "go run main.go"
     ports: 
       - 8080:8080 
     restart: on-failure
     volumes:
-      - api:/usr/src/app/
+      - .:/app
     depends_on:
       - database          
-    networks:
-      - fullstack
+    # networks:
+    #   - fullstack
 
-  flyway:
-    image: flyway/flyway
-    command: -url=jdbc:mysql://database -schemas=myschema -user=root -password=P@ssw0rd -connectRetries=60 migrate
-    volumes:
-      - migration:/flyway/sql
-    depends_on:
-      - database
+  # flyway:
+  #   image: flyway/flyway
+  #   command: -url=jdbc:mysql://database -schemas=myschema -user=root -password=P@ssw0rd -connectRetries=60 migrate
+  #   volumes:
+  #     - migration:/flyway/sql
+  #   depends_on:
+  #     - database
 
   database:
     image: mysql
     container_name: database
-    command: --init-file /init.sql
+    # env_file: .env
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports: 
       - 3306:3306
-    # environment: 
-    #   - MYSQL_ROOT_HOST=database 
-    #   - MYSQL_USER=root
-    #   - MYSQL_PASSWORD=root
-    #   - MYSQL_DATABASE=exl
-    #   - MYSQL_ROOT_PASSWORD=root
+    environment:
+      MYSQL_DATABASE: exl
+      MYSQL_USER: sample_user
+      MYSQL_ROOT_PASSWORD: rootPass
+      MYSQL_PASSWORD: password
     volumes:
-      - ./init.sql:/init.sql
-      - database_mysql:/var/lib/mysql
-    networks:
-      - fullstack
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/mysql
+      - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
+    # networks:
+    #   - fullstack
 
 volumes:
-  api:
-  migration:
-  database_mysql:                  
+  db-data:
+    driver: local                 
 
 # Networks to be created to facilitate communication between containers
-networks:
-  fullstack:
-    driver: bridge
+# networks:
+#   fullstack:
+#     driver: bridge

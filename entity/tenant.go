@@ -44,3 +44,19 @@ type AzureCredentials struct {
 	ClientID string
 	ClientSecret string
 }
+
+type AwsTenant struct {
+	TenantId string
+	Storage AwsStorage
+	Credentials AwsCredentials
+}
+
+type AwsStorage struct {
+	AwsRegion string
+	BucketName string
+}
+
+type AwsCredentials struct {
+	AccessKeyId string
+	SecretAccessKey string
+}
