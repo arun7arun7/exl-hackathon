@@ -13,21 +13,10 @@ services:
       - .:/app
     depends_on:
       - database          
-    # networks:
-    #   - fullstack
-
-  # flyway:
-  #   image: flyway/flyway
-  #   command: -url=jdbc:mysql://database -schemas=myschema -user=root -password=P@ssw0rd -connectRetries=60 migrate
-  #   volumes:
-  #     - migration:/flyway/sql
-  #   depends_on:
-  #     - database
 
   database:
     image: mysql
     container_name: database
-    # env_file: .env
     command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ports: 
       - 3306:3306
@@ -40,14 +29,7 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
       - db-data:/var/lib/mysql
       - ./db/my.cnf:/etc/mysql/conf.d/my.cnf
-    # networks:
-    #   - fullstack
 
 volumes:
   db-data:
     driver: local                 
-
-# Networks to be created to facilitate communication between containers
-# networks:
-#   fullstack:
-#     driver: bridge

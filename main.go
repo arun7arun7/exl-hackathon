@@ -12,8 +12,6 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/go-sql-driver/mysql"
-	// "github.com/jinzhu/gorm"
-	// "gorm.io/driver/mysql"
 
 )
 
@@ -29,16 +27,6 @@ func main() {
     }
     defer db.Close()
 
-	// USER := "sample_user"
-	// PASS := "password"
-	// PROTOCOL := "tcp(127.0.0.1:3306)"
-	// DBNAME := "exl"
-	// CONNECT := USER + ":" + PASS + "@" + PROTOCOL + "/" + DBNAME + "?parseTime=true"
-	// db, err := gorm.Open("mysql", CONNECT)
-	// if err != nil {
-	// 	log.Fatalf("error connecting database: %s\n", err)
-	// }
-
 	fileRepository := repository.NewFileRepositoryImpl(db)
 	tenantRepository := repository.NewTenantRepositoryImpl(db)
 	tenantService := service.NewTenantServiceImpl(tenantRepository)
@@ -53,7 +41,7 @@ func main() {
 		Handler:      router,
 	}
 
-	log.Println("Starting server")
+	log.Println("Server Started")
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("listen: %s\n", err)
 	}

@@ -17,9 +17,9 @@ func fileUpload(parentCtx context.Context,  fs service.FileService) http.Handler
 		ctx, cancelFunc := context.WithCancel(parentCtx)
 		defer cancelFunc()
 		vars := mux.Vars(r)
-		tenantId := vars["tenant-id"]
+		orgId := vars["org-id"]
 		cloudType := vars["cloud-type"]
-		log.Printf("TenantId: %s", tenantId)
+		log.Printf("OrgId: %s", orgId)
 
 		contentType := r.Header.Get("Content-Type")
 		contentLength := r.Header.Get("Content-Length")
@@ -42,7 +42,7 @@ func fileUpload(parentCtx context.Context,  fs service.FileService) http.Handler
 		}
 		log.Printf("Cloud : %s", cloud)
 
-		objectId, err := fs.UploadSync(ctx, tenantId, cloud, r.Body, fileExtension)
+		objectId, err := fs.UploadSync(ctx, orgId, cloud, r.Body, fileExtension)
 		if err != nil {
 			if err ==  service.ErrTenantIdNotFound {
 				w.WriteHeader(http.StatusNotFound)
@@ -93,7 +93,6 @@ func fileDownload(parentCtx context.Context,  fs service.FileService) http.Handl
 }
 
 func MakeFileHandler(ctx context.Context, router *mux.Router, fs service.FileService) {
-	router.HandleFunc("/v1/upload", fileUpload(ctx, fs)).Methods("POST").Queries("tenant-id", "{tenant-id:.*}", "cloud-type", "{cloud-type:.*}")
+	router.HandleFunc("/v1/upload", fileUpload(ctx, fs)).Methods("POST").Queries("org-id", "{org-id:.*}", "cloud-type", "{cloud-type:.*}")
 	router.HandleFunc("/v1/download", fileDownload(ctx, fs)).Methods("GET").Queries("object-id", "{object-id:.*}")
-
 }

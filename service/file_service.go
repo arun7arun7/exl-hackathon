@@ -22,7 +22,7 @@ var (
 )
 
 type FileService interface {
-	UploadSync(parentCtx context.Context, tenantId string, cloudType constants.CloudType, body io.ReadCloser, fileExtension string) (string, error)
+	UploadSync(parentCtx context.Context, orgId string, cloudType constants.CloudType, body io.ReadCloser, fileExtension string) (string, error)
 	DownloadSync(parentCtx context.Context, objectId string) (io.ReadCloser, *dto.FileMetadata, error)
 }
 
@@ -38,10 +38,10 @@ func NewFileServiceImpl(fp repository.FileRepository, ts TenantService) *FileSer
 	}
 }
 
-func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, tenantId string, cloudType constants.CloudType, body io.ReadCloser, fileExtension string) (string, error) {
+func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, orgId string, cloudType constants.CloudType, body io.ReadCloser, fileExtension string) (string, error) {
 	switch cloudType {
 	case constants.AZURE:
-		azureTenant, err := fs.tenantService.GetByAzureTenantID(tenantId)
+		azureTenant, err := fs.tenantService.GetByAzureOrgID(orgId)
 		if err != nil {
 			log.Println("Error fetching AzureTenant ID")
 			return "", err
@@ -67,7 +67,7 @@ func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, tenantId string
 			log.Println("Error Uploading data")
 			return "", err
 		}
-		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, tenantId, string(cloudType))
+		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, orgId, string(cloudType))
 		if err != nil {
 			log.Printf("Error creating file entry %s", err)
 		}
@@ -76,7 +76,7 @@ func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, tenantId string
 
 	case constants.AWS:
 		log.Printf("Inside AWS")
-		awsTenant, err := fs.tenantService.GetByAwsTenantID(tenantId)
+		awsTenant, err := fs.tenantService.GetByAwsOrgID(orgId)
 		if err != nil {
 			log.Println("Error fetching AwsTenant ID")
 			return "", err
@@ -95,7 +95,7 @@ func (fs *FileServiceImpl) UploadSync(parentCtx context.Context, tenantId string
 			log.Println("Error Uploading data")
 			return "", err
 		}
-		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, tenantId, string(cloudType))
+		err = fs.fileRepository.Create(fileUniqueIdentifier, fileExtension, orgId, string(cloudType))
 		if err != nil {
 			log.Printf("Error creating file entry %s", err)
 		}
@@ -118,15 +118,15 @@ func (fs *FileServiceImpl) DownloadSync(parentCtx context.Context, objectId stri
 	}
 
 	log.Printf("File : %v\n", file)
-	log.Printf("ObjectId: %s\n FileExtension: %s\n Cloud: %s\n", file.GetObjectId(), file.GetFileExtension(), file.GetCloudType())
-	cloudType := constants.GetCloudType(file.GetCloudType())
+	log.Printf("ObjectId: %s\n FileExtension: %s\n Cloud: %s\n", file.ObjectId, file.FileExtension, file.CloudType)
+	cloudType := constants.GetCloudType(file.CloudType)
 	if cloudType == constants.CloudType("") {
 		log.Printf("CloudType Mismatch\n")
 		return nil, nil, ErrUnknown
 	}
 	switch cloudType {
 		case constants.AZURE:
-			azureTenant, err := fs.tenantService.GetByAzureTenantID(file.GetTenantId())
+			azureTenant, err := fs.tenantService.GetByAzureOrgID(file.OrganizationId)
 			if err != nil {
 				log.Printf("Error fetching AzureTenant ID\n")
 				return nil, nil, err
@@ -135,7 +135,7 @@ func (fs *FileServiceImpl) DownloadSync(parentCtx context.Context, objectId stri
 				log.Printf("Tenant ID is not found\n")
 				return nil, nil, ErrUnknown
 			}
-			blobName := file.GetObjectId() + file.GetFileExtension()
+			blobName := file.ObjectId + file.FileExtension
 			azureService := cloud.NewAzureService(azureTenant.Storage.StorageAccount, azureTenant.Storage.ContainerName, azureTenant.TenantId, azureTenant.Credentials.ClientID, azureTenant.Credentials.ClientSecret)
 			body, err := azureService.FileDownloadSync(parentCtx, blobName)
 			if err != nil {
@@ -145,12 +145,12 @@ func (fs *FileServiceImpl) DownloadSync(parentCtx context.Context, objectId stri
 			log.Printf("Successfully downloaded %s\n", blobName)
 			metadata := &dto.FileMetadata{
 				Name: blobName,
-				FileExtension: file.GetFileExtension(),
+				FileExtension: file.FileExtension,
 			}
 			return body, metadata, nil
 
 		case constants.AWS:
-			awsTenant, err := fs.tenantService.GetByAwsTenantID(file.GetTenantId())
+			awsTenant, err := fs.tenantService.GetByAwsOrgID(file.OrganizationId)
 			if err != nil {
 				log.Printf("Error fetching AwsTenant ID\n")
 				return nil, nil, err
@@ -159,7 +159,7 @@ func (fs *FileServiceImpl) DownloadSync(parentCtx context.Context, objectId stri
 				log.Printf("Tenant ID is not found\n")
 				return nil, nil, ErrUnknown
 			}
-			fileName := file.GetObjectId() + file.GetFileExtension()
+			fileName := file.ObjectId + file.FileExtension
 			awsService := cloud.NewAwsService(awsTenant.Storage.AwsRegion, awsTenant.Storage.BucketName, awsTenant.Credentials.AccessKeyId, awsTenant.Credentials.SecretAccessKey)
 			body, err := awsService.FileDownloadSync(parentCtx, fileName)
 			if err != nil {
@@ -169,7 +169,7 @@ func (fs *FileServiceImpl) DownloadSync(parentCtx context.Context, objectId stri
 			log.Printf("Successfully downloaded %s\n", fileName)
 			metadata := &dto.FileMetadata{
 				Name: fileName,
-				FileExtension: file.GetFileExtension(),
+				FileExtension: file.FileExtension,
 			}
 			return body, metadata, nil
 		default:

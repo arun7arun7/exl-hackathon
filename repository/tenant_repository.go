@@ -3,13 +3,12 @@ package repository
 import (
 	"database/sql"
 	"exl-server/entity"
-	// "fmt"
 	"log"
 )
 
 type TenantRepository interface {
-	FindByAzureTenantId(tenantId string) (*entity.AzureTenant, error)
-	FindByAwsTenantId(tenantId string) (*entity.AwsTenant, error)
+	FindByAzureOrgId(orgId string) (*entity.AzureTenant, error)
+	FindByAwsOrgId(orgId string) (*entity.AwsTenant, error)
 }
 
 type TenantRepositoryImpl struct {
@@ -22,11 +21,10 @@ func NewTenantRepositoryImpl(db *sql.DB) *TenantRepositoryImpl {
 	}
 }
 
-func (tenantRepository *TenantRepositoryImpl) FindByAzureTenantId(tenantid string) (*entity.AzureTenant, error) {
-	// query := fmt.Sprintf("SELECT tenant_id, storage_account, container_name, client_id, client_secret from azure_tenant where tenant_id = '%s'", tenantid)
-	row, err := tenantRepository.db.Query("SELECT tenant_id, storage_account, container_name, client_id, client_secret from azure_tenant where tenant_id = ?", tenantid)
+func (tenantRepository *TenantRepositoryImpl) FindByAzureOrgId(orgId string) (*entity.AzureTenant, error) {
+	row, err := tenantRepository.db.Query("SELECT tenant_id, storage_account, container_name, client_id, client_secret from azure_tenant where organization_id = ?", orgId)
 	if err != nil {
-		log.Printf("error retrieving tenant id from azure_tenant : %s", err)
+		log.Printf("error retrieving organization id from azure_tenant : %s", err)
 		return nil, err
 	}
 	defer row.Close()
@@ -37,30 +35,20 @@ func (tenantRepository *TenantRepositoryImpl) FindByAzureTenantId(tenantid strin
 		return &result, nil
 	}
 	return nil, nil
-
-	// return &entity.AzureTenant{
-	// 	TenantId: tenantid,
-	// 	Storage: entity.AzureStorage{
-	// 		StorageAccount: "prac",
-	// 		ContainerName: "exl",
-	// 	},
-	// 	Credentials: entity.AzureCredentials{
-	// 		ClientID: "1ff1fc50-373f-4a9d-9553-631b58f7e97a",
-	// 		ClientSecret: "_7u8Q~Pzz8-tt2DNeX_zvNYGZN~.efEoVJ~tgbfK",
-	// 	},
-	// }, nil
 }
 
-func (tenantRepositoryImpl *TenantRepositoryImpl) FindByAwsTenantId(tenantId string) (*entity.AwsTenant, error) {
-	return &entity.AwsTenant{
-		TenantId: tenantId,
-		Storage: entity.AwsStorage{
-			AwsRegion: "us-east-2",
-			BucketName: "exl-storage",
-		},
-		Credentials: entity.AwsCredentials{
-			AccessKeyId: "AKIA52EZ53Y4GJP6CEX2",
-			SecretAccessKey: "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",
-		},
-	}, nil
+func (tenantRepository *TenantRepositoryImpl) FindByAwsOrgId(orgId string) (*entity.AwsTenant, error) {
+	row, err := tenantRepository.db.Query("SELECT aws_region, bucket_name, access_key_id, secret_access_key from aws_tenant where organization_id = ?", orgId)
+	if err != nil {
+		log.Printf("error retrieving organization id from aws_tenant : %s", err)
+		return nil, err
+	}
+	defer row.Close()
+	if row.Next() {
+		log.Printf("Debug : %v\n", row)
+		var result entity.AwsTenant
+		row.Scan(&result.Storage.AwsRegion, &result.Storage.BucketName, &result.Credentials.AccessKeyId, &result.Credentials.SecretAccessKey)
+		return &result, nil
+	}
+	return nil, nil
 }
